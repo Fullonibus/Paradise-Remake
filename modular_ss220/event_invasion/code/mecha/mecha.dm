@@ -391,7 +391,6 @@
 	gunner = null
 	. = ..()
 
-
 /datum/action/innate/mecha/change_stance
 	name = "Сменить стойку меха"
 	icon_icon = 'modular_ss220/event_invasion/icons/mech_icon.dmi'
@@ -436,7 +435,7 @@
 		parsed_chassis.update_icon(UPDATE_ICON_STATE)
 		parsed_chassis.set_nomad_overlays(NOMAD_UP)
 
-	button_icon_state = "mech_[parsed_chassis.nomad_state == NOMAD_DOWN ? "down" : "up"]"
+	button_icon_state = "mech_[parsed_chassis.nomad_state == NOMAD_DOWN ? "up" : "down"]"
 	UpdateButtons()
 
 /datum/action/innate/mecha/mech_eject/nomad/Activate()
