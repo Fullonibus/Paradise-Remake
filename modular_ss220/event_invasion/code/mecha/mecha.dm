@@ -474,13 +474,15 @@
 		to_chat(owner, "<span class='warning'>Вы не можете выйти из \"Кочевника\" пока он не в сидячем положении.</span>")
 		return
 
-	parsed_chassis.RemoveActions(owner)
-	parsed_chassis.gunner = null
+
+
 	flick("mech-open-act-[parsed_chassis.occupant ? 1 : 0]-2", parsed_chassis)
 	parsed_chassis.update_icon(UPDATE_ICON_STATE)
 	sleep(2 SECONDS)
 	owner.forceMove(get_turf(parsed_chassis))
 	to_chat(owner, "<span class='notice'>Вы вылезли из меха \"[src]\".</span>")
+	parsed_chassis.RemoveActions(owner)
+	parsed_chassis.gunner = null
 
 /datum/action/innate/mecha/strafe
 	name = "Переключить режим стрейфа"
