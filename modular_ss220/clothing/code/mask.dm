@@ -68,3 +68,27 @@
 	icon = 'modular_ss220/clothing/icons/object/masks.dmi'
 	icon_override = 'modular_ss220/clothing/icons/mob/mask.dmi'
 	icon_state = "breathscarf"
+
+/obj/item/clothing/mask/breath/shemag_desert
+	name = "шемах с дыхательной канюлей"
+	desc = "Удобный хлопковый платок, легко собирающийся в повязку на лицо. С внутренней стороны подшита адаптивная гофрированная трубочка для подсоединения баллонов."
+	icon = 'modular_ss220/clothing/icons/object/masks.dmi'
+	icon_state = "shemagdesert"
+	sprite_sheets = list(
+		"Human"				= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Diona" 			= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Drask" 			= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Grey" 				= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Human" 			= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Machine"			= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Nian" 				= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Plasmaman" 		= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Skrell" 			= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Slime People" 		= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Unathi" 			= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Vox" 				= 	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Nucleation"		=	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Kidan" 			= 	'modular_ss220/clothing/icons/mob/species/kidan/mask.dmi',
+		"Tajaran" 			=	'modular_ss220/clothing/icons/mob/mask.dmi',
+		"Vulpkanin" 		= 	'modular_ss220/clothing/icons/mob/species/vulpkanin/mask.dmi',
+	)

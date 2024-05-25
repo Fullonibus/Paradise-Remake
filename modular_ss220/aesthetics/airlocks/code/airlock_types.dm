@@ -249,3 +249,17 @@
 /obj/machinery/door/airlock/multi_tile/supply/glass
 	opacity = FALSE
 	glass = TRUE
+
+// Special Airlocks
+/obj/machinery/door/airlock/highsecurity/secret
+	name = "reinforced wall"
+	desc = "Effectively impervious to conventional methods of destruction."
+	icon = 'modular_ss220/dunes_map/icons/door.dmi'
+	overlays_file = null
+	assemblytype = null
+	smoothing_groups = list(SMOOTH_GROUP_SIMULATED_TURFS, SMOOTH_GROUP_WALLS, SMOOTH_GROUP_REINFORCED_WALLS)
+	normal_integrity = INDESTRUCTIBLE
+	doorDeni = null
+	boltUp = null
+	boltDown = null
+	paintable = FALSE
