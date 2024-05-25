@@ -118,6 +118,8 @@
 		return TRUE
 
 	var/input = tgui_alert(user, "Вы хотите сесть на место?:", "Выбор места", list(DRIVER_SEAT, GUNNER_SEAT))
+	if(user == occupant || user == gunner)
+		return TRUE
 	switch (input)
 		if(DRIVER_SEAT)
 			if(occupant)
