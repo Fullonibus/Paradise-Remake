@@ -3,8 +3,21 @@
 
 #define NOMAD_DOWN 1
 #define NOMAD_UP 2
+#define NOMAD_PREPARE_TO_RISE 3
+#define NOMAD_RISES 4
+#define NOMAD_GOES_DOWN 5
 
 #define COMSIG_MECHA_EQUIPMENT_CLICK "mecha_action_equipment_click"
+
+/obj/effect/nomad_guns
+	icon = 'modular_ss220/event_invasion/icons/mecha.dmi'
+	icon_state = "weapon_act_up"
+	appearance_flags = PIXEL_SCALE
+	name = "МОЩЬ 11 СТВОЛОВ"
+	desc = "Ужасают."
+	layer = 5
+	pixel_x = -16
+	pixel_y = 32
 
 /obj/mecha/combat/nomad
 	desc = "A lightweight, security exosuit. Popular among private and corporate security."
@@ -12,6 +25,7 @@
 	icon = 'modular_ss220/event_invasion/icons/mecha.dmi'
 	icon_state = "mech-down-0-0"
 	initial_icon = "mech"
+	layer = 5.1
 	step_in = 3
 	opacity = 0
 	dir_in = 1
@@ -37,38 +51,53 @@
 	eject_action = new /datum/action/innate/mecha/mech_eject/nomad
 
 	var/strafe = FALSE
-	var/image/guns_overlay
-	var/stance = NOMAD_DOWN
+	var/guns_decal_path = /obj/effect/nomad_guns
+	var/obj/effect/guns_decal
+	var/nomad_state = NOMAD_DOWN
 
 /obj/mecha/combat/nomad/Initialize()
 	. = ..()
-
 	appearance_flags |= PIXEL_SCALE
 	transform = transform.Scale(2, 2)
-	guns_overlay = image('modular_ss220/event_invasion/icons/mecha.dmi', "weapon_over")
-	guns_overlay.appearance_flags |= PIXEL_SCALE
-	guns_overlay.layer = layer - 0.1
-	// guns_overlay.transform = guns_overlay.transform.Scale(2, 2)
 	update_icon(UPDATE_ICON_STATE)
 	set_nomad_overlays(NOMAD_DOWN)
 	var/obj/item/mecha_parts/mecha_equipment/nomad_gun = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/carbine/nomad
 	nomad_gun.attach(src)
-	nomad_gun = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack/heavy
-	nomad_gun.attach(src)
+
+/obj/mecha/combat/nomad/proc/debug_proc()
+	flick("weapon_act_down", guns_decal)
 
 /obj/mecha/combat/nomad/proc/set_nomad_overlays(state)
-	cut_overlays()
-
+	if(!guns_decal)
+		guns_decal = new guns_decal_path(loc)
+		guns_decal.transform = guns_decal.transform.Scale(2, 2)
 	switch(state)
 		if(NOMAD_DOWN)
-			overlays += guns_overlay
+			guns_decal.icon_state = "weapon_down"
+		if(NOMAD_RISES)
+			flick("weapon_act_rise", guns_decal)
+			guns_decal.icon_state = "weapon_up"
+		if(NOMAD_GOES_DOWN)
+			flick("weapon_act_down", guns_decal)
+			guns_decal.icon_state = "weapon_down"
+		if(NOMAD_UP)
+			if(guns_decal)
+				qdel(guns_decal)
+				guns_decal = null
 
 /obj/mecha/combat/nomad/update_icon_state()
 	. = ..()
-	if(stance == NOMAD_UP)
-		icon_state = "mech"
-	else if(stance == NOMAD_DOWN)
-		icon_state = "mech-down-[occupant ? 1 : 0]-[gunner ? 1 : 0]"
+	switch(nomad_state)
+		if(NOMAD_UP)
+			icon_state = "mech"
+		if(NOMAD_DOWN)
+			icon_state = "mech-down-[occupant ? 1 : 0]-[gunner ? 1 : 0]"
+		if(NOMAD_PREPARE_TO_RISE)
+			icon_state = "mech-down-1-1"
+		if(NOMAD_RISES)
+			icon_state = "mech"
+		if(NOMAD_GOES_DOWN)
+			icon_state = "mech-down-1-1"
 
 
 /obj/mecha/combat/nomad/MouseDrop_T(mob/M, mob/user)
@@ -79,7 +108,7 @@
 		return
 	if(user != M)
 		return
-	if(stance == NOMAD_UP)
+	if(nomad_state == NOMAD_UP)
 		to_chat(user, "<span class='warning'>\"Кочевник\" в боевой стойке. Вы не можете войти в него</span>")
 		return TRUE
 	log_message("[user] tries to move in.")
@@ -145,6 +174,7 @@
 /obj/mecha/combat/nomad/GrantActions(mob/living/user, human_occupant = 0)
 	internals_action.Grant(user, src)
 	lights_action.Grant(user, src)
+	change_stance_action.Grant(user, src)
 
 	if (user == occupant)
 		GrantDriverActions(user)
@@ -155,7 +185,6 @@
 	eject_action.Grant(user, src)
 	stats_action.Grant(user, src)
 	strafing_action.Grant(user, src)
-	change_stance_action.Grant(user, src)
 	if(locate(/obj/item/mecha_parts/mecha_equipment/thrusters) in equipment)
 		add_thrusters()
 
@@ -174,13 +203,14 @@
 /obj/mecha/combat/nomad/RemoveActions(mob/living/user, human_occupant = 0)
 	internals_action.Remove(user)
 	lights_action.Remove(user)
+	change_stance_action.Remove(user)
+	user.client.RemoveViewMod("mecha-auto-zoom")
+	user.client.fit_viewport()
 
 	if (user == occupant)
 		RemoveDriverActions(user)
-		occupant.client.RemoveViewMod("mecha-auto-zoom")
 	if (user == gunner)
 		RemoveGunnerActions(user)
-		gunner.client.RemoveViewMod("mecha-auto-zoom")
 
 /obj/mecha/combat/nomad/domove(direction)
 	if(can_move >= world.time)
@@ -189,9 +219,14 @@
 		return FALSE
 	if(!has_charge(step_energy_drain))
 		return FALSE
-	if(stance == NOMAD_DOWN)
+	if(nomad_state == NOMAD_DOWN)
 		if(world.time - last_message > 20)
 			occupant_message("<span class='danger'>Вы не можете двигаться, \"Кочевник\" сидит.</span>")
+			last_message = world.time
+		return FALSE
+	if(nomad_state == NOMAD_GOES_DOWN || nomad_state == NOMAD_RISES || nomad_state == NOMAD_PREPARE_TO_RISE)
+		if(world.time - last_message > 20)
+			occupant_message("<span class='danger'>Вы не можете двигаться, \"Кочевник\" меняет стойку.</span>")
 			last_message = world.time
 		return FALSE
 	if(defence_mode)
@@ -260,6 +295,7 @@
 	log_append_to_last("[H] moved in as pilot.")
 	dir = dir_in
 	H.client.AddViewMod("mecha-auto-zoom", 12)
+	H.client.fit_viewport()
 	playsound(src, 'sound/machines/windowdoor.ogg', 50, 1)
 	if(!activated)
 		SEND_SOUND(occupant, sound(longactivationsound, volume = 50))
@@ -270,6 +306,12 @@
 		H.throw_alert("locked", /atom/movable/screen/alert/mech_maintenance)
 	if(connected_port)
 		H.throw_alert("mechaport_d", /atom/movable/screen/alert/mech_port_disconnect)
+	switch (seat)
+		if(DRIVER_SEAT)
+			flick("mech-close-act-2-[gunner ? 1 : 0]", src)
+		if(GUNNER_SEAT)
+			flick("mech-close-act-[occupant ? 1 : 0]-2", src)
+	sleep(2 SECONDS)
 	update_icon(UPDATE_ICON_STATE)
 	return TRUE
 
@@ -352,7 +394,8 @@
 
 /datum/action/innate/mecha/change_stance
 	name = "Сменить стойку меха"
-	button_icon_state = "mech_eject"
+	icon_icon = 'modular_ss220/event_invasion/icons/mech_icon.dmi'
+	button_icon_state = "mech_up"
 
 /datum/action/innate/mecha/change_stance/Activate()
 	if(!owner)
@@ -360,26 +403,41 @@
 
 	var/obj/mecha/combat/nomad/parsed_chassis = chassis
 
-	if(!parsed_chassis || parsed_chassis.occupant != owner)
+	if(!parsed_chassis || (parsed_chassis.occupant != owner && parsed_chassis.gunner != owner))
 		return
 	if(parsed_chassis.strafe)
 		to_chat(owner, "<span class='warning'>Вы не можете поменять стойку пока \"Кочевник\" стрейфит.</span>")
 		return
 
 	parsed_chassis.dir = SOUTH
-	if(parsed_chassis.stance == NOMAD_UP)
-		flick("mech-act-down", parsed_chassis)
-		parsed_chassis.set_nomad_overlays(NOMAD_DOWN)
-		sleep(3 SECONDS)
-		parsed_chassis.stance = NOMAD_DOWN
+	if(parsed_chassis.nomad_state == NOMAD_UP)
+		parsed_chassis.nomad_state = NOMAD_GOES_DOWN
+		parsed_chassis.set_nomad_overlays(NOMAD_GOES_DOWN)
 		parsed_chassis.update_icon(UPDATE_ICON_STATE)
-	else if(parsed_chassis.stance == NOMAD_DOWN)
+		flick("mech-act-down", parsed_chassis)
+		sleep(5 SECONDS)
+		flick("mech-open-act-[parsed_chassis.occupant ? 1 : 2]-[parsed_chassis.gunner ? 1 : 2]", parsed_chassis)
+		parsed_chassis.nomad_state = NOMAD_DOWN
+		parsed_chassis.set_nomad_overlays(NOMAD_DOWN)
+		parsed_chassis.update_icon(UPDATE_ICON_STATE)
+
+	else if(parsed_chassis.nomad_state == NOMAD_DOWN)
+		flick("mech-close-act-[parsed_chassis.occupant ? 1 : 2]-[parsed_chassis.gunner ? 1 : 2]", parsed_chassis)
+		parsed_chassis.nomad_state = NOMAD_PREPARE_TO_RISE
+		parsed_chassis.update_icon(UPDATE_ICON_STATE)
+		sleep(2 SECONDS)
+
 		flick("mech-act-up", parsed_chassis)
-		sleep(3 SECONDS)
-		parsed_chassis.stance = NOMAD_UP
+		parsed_chassis.set_nomad_overlays(NOMAD_RISES)
+		parsed_chassis.nomad_state = NOMAD_RISES
+		parsed_chassis.update_icon(UPDATE_ICON_STATE)
+		sleep(5 SECONDS)
+		parsed_chassis.nomad_state = NOMAD_UP
 		parsed_chassis.update_icon(UPDATE_ICON_STATE)
 		parsed_chassis.set_nomad_overlays(NOMAD_UP)
 
+	button_icon_state = "mech_[parsed_chassis.nomad_state == NOMAD_DOWN ? "down" : "up"]"
+	UpdateButtons()
 
 /datum/action/innate/mecha/mech_eject/nomad/Activate()
 	if(!owner)
@@ -390,10 +448,13 @@
 	if(!parsed_chassis || parsed_chassis.occupant != owner)
 		return
 
-	if(parsed_chassis.stance == NOMAD_UP)
-		to_chat(owner, "<span class='warning'>Вы не можете выйти из \"Кочевника\" пока он в боевой стойке.</span>")
+	if(parsed_chassis.nomad_state != NOMAD_DOWN)
+		to_chat(owner, "<span class='warning'>Вы не можете выйти из \"Кочевника\" пока он не в сидячем положении.</span>")
 		return
 
+
+	flick("mech-open-act-2-[parsed_chassis.gunner ? 1 : 0]", parsed_chassis)
+	sleep(2 SECONDS)
 	chassis.go_out()
 	parsed_chassis.update_icon(UPDATE_ICON_STATE)
 
@@ -410,17 +471,17 @@
 	if(!parsed_chassis || parsed_chassis.gunner != owner)
 		return
 
-	if(parsed_chassis.stance == NOMAD_UP)
-		to_chat(owner, "<span class='warning'>Вы не можете выйти из \"Кочевника\" пока он в боевой стойке.</span>")
+	if(parsed_chassis.nomad_state != NOMAD_DOWN)
+		to_chat(owner, "<span class='warning'>Вы не можете выйти из \"Кочевника\" пока он не в сидячем положении.</span>")
 		return
 
-	parsed_chassis.RemoveActions(owner)
 	parsed_chassis.gunner = null
-	flick("")
-	owner.forceMove(get_turf(parsed_chassis))
+	flick("mech-open-act-[parsed_chassis.occupant ? 1 : 0]-2", parsed_chassis)
 	parsed_chassis.update_icon(UPDATE_ICON_STATE)
-
+	sleep(2 SECONDS)
+	owner.forceMove(get_turf(parsed_chassis))
 	to_chat(owner, "<span class='notice'>Вы вылезли из меха \"[src]\".</span>")
+	parsed_chassis.RemoveActions(owner)
 
 /datum/action/innate/mecha/strafe
 	name = "Переключить режим стрейфа"
