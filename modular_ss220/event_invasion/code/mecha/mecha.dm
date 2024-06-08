@@ -61,7 +61,9 @@
 	transform = transform.Scale(2, 2)
 	update_icon(UPDATE_ICON_STATE)
 	set_nomad_overlays(NOMAD_DOWN)
-	var/obj/item/mecha_parts/mecha_equipment/nomad_gun = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/carbine/nomad
+	var/obj/item/mecha_parts/mecha_equipment/nomad_gun = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/nomad/carbine
+	nomad_gun.attach(src)
+	nomad_gun = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/nomad/missile
 	nomad_gun.attach(src)
 
 /obj/mecha/combat/nomad/proc/debug_proc()
@@ -177,6 +179,7 @@
 	internals_action.Grant(user, src)
 	lights_action.Grant(user, src)
 	change_stance_action.Grant(user, src)
+	stats_action.Grant(user, src)
 
 	if (user == occupant)
 		GrantDriverActions(user)
@@ -185,7 +188,6 @@
 
 /obj/mecha/combat/nomad/proc/GrantDriverActions(mob/living/user)
 	eject_action.Grant(user, src)
-	stats_action.Grant(user, src)
 	strafing_action.Grant(user, src)
 	if(locate(/obj/item/mecha_parts/mecha_equipment/thrusters) in equipment)
 		add_thrusters()
@@ -198,7 +200,6 @@
 
 /obj/mecha/combat/nomad/proc/RemoveDriverActions(mob/living/user)
 	eject_action.Remove(user)
-	stats_action.Remove(user)
 	strafing_action.Remove(user)
 	thrusters_action.Remove(user)
 
@@ -206,6 +207,7 @@
 	internals_action.Remove(user)
 	lights_action.Remove(user)
 	change_stance_action.Remove(user)
+	stats_action.Remove(user)
 	user.client.RemoveViewMod("mecha-auto-zoom")
 	user.client.fit_viewport()
 
